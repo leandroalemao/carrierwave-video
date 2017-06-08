@@ -57,7 +57,7 @@ describe CarrierWave::Video do
 
           expect(opts[:video_codec]).to eq('libvpx')
           expect(opts[:audio_codec]).to eq('libvorbis')
-          expect(opts[:custom]).to eq('-b 1500k -ab 160000 -f webm -g 30')
+          expect(opts[:custom]).to eq('-b 1500k -ab 160000 -f webm -g 30'.split(' '))
 
           expect(path).to eq("video/path/tmpfile.#{format}")
         end
@@ -103,7 +103,6 @@ describe CarrierWave::Video do
         let(:e) { StandardError.new("test error") }
         before { expect(File).to receive(:rename).and_raise(e) }
 
-
         it "calls before_transcode and ensure" do
           expect(converter.model).to receive(:method1).with(format, opts).ordered
           expect(converter.model).not_to receive(:method2)
@@ -112,7 +111,7 @@ describe CarrierWave::Video do
 
           expect do
             converter.encode_video(format, opts)
-          end.to raise_exception(CarrierWave::ProcessingError)
+          end.to raise_exception(e.class)
         end
       end
     end
@@ -145,7 +144,7 @@ describe CarrierWave::Video do
 
           expect do
             converter.encode_video(format, logger: :logger)
-          end.to raise_exception(CarrierWave::ProcessingError)
+          end.to raise_exception(e.class)
         end
       end
     end
@@ -180,7 +179,7 @@ describe CarrierWave::Video do
 
           expect(opts[:video_codec]).to eq('libvpx')
           expect(opts[:audio_codec]).to eq('libvorbis')
-          expect(opts[:custom]).to eq("-b 1500k -ab 160000 -f webm -g 30 -vf \"movie=path/to/file.png [logo]; [in][logo] overlay=5:main_h-overlay_h-5 [out]\"")
+          expect(opts[:custom]).to eq("-b 1500k -ab 160000 -f webm -g 30 -vf \"movie=path/to/file.png [logo]; [in][logo] overlay=5:main_h-overlay_h-5 [out]\"".split(' '))
 
           expect(path).to eq("video/path/tmpfile.#{format}")
         end
@@ -198,7 +197,7 @@ describe CarrierWave::Video do
 
           expect(opts[:video_codec]).to eq('libvpx')
           expect(opts[:audio_codec]).to eq('libvorbis')
-          expect(opts[:custom]).to eq("-b 1500k -ab 160000 -f webm -g 30 -vf \"movie=path/to/file.png [logo]; [in][logo] overlay= [out]\"")
+          expect(opts[:custom]).to eq("-b 1500k -ab 160000 -f webm -g 30 -vf \"movie=path/to/file.png [logo]; [in][logo] overlay= [out]\"".split(' '))
 
           expect(path).to eq("video/path/tmpfile.#{format}")
         end
@@ -243,15 +242,15 @@ describe CarrierWave::Video do
 
       it "takes the provided custom param" do
         expect(movie).to receive(:transcode) do |path, opts, codec_opts|
-          expect(opts[:custom]).to eq('-preset slow') # a la changes in ffmpeg 0.11.1
+          expect(opts[:custom]).to eq(%w(-preset slow)) # a la changes in ffmpeg 0.11.1
         end
 
-        converter.encode_video(format, custom: '-preset slow')
+        converter.encode_video(format, custom: %w(-preset slow))
       end
 
       it "maintains the watermark params" do
         expect(movie).to receive(:transcode) do |path, opts, codec_opts|
-          expect(opts[:custom]).to eq("-preset slow -vf \"movie=path/to/file.png [logo]; [in][logo] overlay= [out]\"")
+          expect(opts[:custom]).to eq("-preset slow -vf \"movie=path/to/file.png [logo]; [in][logo] overlay= [out]\"".split(' '))
         end
 
         converter.encode_video(format, custom: '-preset slow', watermark: {
@@ -285,7 +284,7 @@ describe CarrierWave::Video do
         block = Proc.new { |input, params| params[:custom] = '-preset slow' }
 
         expect(movie).to receive(:transcode) do |path, format_opts, codec_opts|
-          expect(format_opts[:custom]).to eq('-preset slow')
+          expect(format_opts[:custom]).to eq(%w(-preset slow))
         end
 
         converter.encode_video(format, opts, &block)
@@ -298,7 +297,7 @@ describe CarrierWave::Video do
         end
 
         expect(movie).to receive(:transcode) do |path, format_opts, codec_opts|
-          expect(format_opts[:custom]).to eq('-preset slow -vf "movie=customized/path [logo]; [in][logo] overlay= [out]"')
+          expect(format_opts[:custom]).to eq('-preset slow -vf "movie=customized/path [logo]; [in][logo] overlay= [out]"'.split(' '))
         end
 
         converter.encode_video(format, opts, &block)
